@@ -7,7 +7,9 @@
     "test": "tests"
   },
   "dependencies": {
+    "@hashgraph/sdk": "^1.1.12",
     "@openzeppelin/contracts": "^3.0.1",
+    "bignumber.js": "^9.0.0",
     "etherlime-lib": "^1.2.3",
     "ethers": "^4.0.47"
   },
