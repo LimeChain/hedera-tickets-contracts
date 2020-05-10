@@ -1,0 +1,32 @@
+{
+  "name": "hedera-tickets-contracts",
+  "version": "1.0.0",
+  "description": "Hedera hackaton tickets offering contracts",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.0.1",
+    "etherlime-lib": "^1.2.3",
+    "ethers": "^4.0.47"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "eth": "etherlime ganache",
+    "test": "etherlime test ./tests --skip-compilation",
+    "compile": "etherlime compile",
+    "hedera-start": "node ./hedera/playground",
+    "hedera-deploy": "node ./hedera/deployment"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LimeChain/hedera-tickets-contracts.git"
+  },
+  "author": "LimeChain",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LimeChain/hedera-tickets-contracts/issues"
+  },
+  "homepage": "https://github.com/LimeChain/hedera-tickets-contracts#readme"
+}
