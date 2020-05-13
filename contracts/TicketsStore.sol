@@ -20,6 +20,7 @@ contract TicketsStore is Ownable {
     }
 
     mapping(address => Ticket) public ticketOwner;
+    // Todo: Think of how to get ticketGroup by groupID
     mapping(uint256 => TicketGroup) public ticketsByPrice;
 
     constructor(uint256 ticketsAmount) public {
@@ -27,6 +28,7 @@ contract TicketsStore is Ownable {
     }
 
     // Todo: Revert if such a price has been already defined
+    // Todo: Implement group ID
     function defineGroup(uint256 available, uint256 price) public onlyOwner {
         require(available <= amount, "More tickets than the maximum amount");
         ticketsByPrice[price] = TicketGroup(price, available);
