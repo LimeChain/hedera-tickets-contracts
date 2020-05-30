@@ -19,24 +19,27 @@ contract TicketsStore is Ownable {
         uint256 available;
     }
 
-    mapping(address => Ticket) public ticketOwner;
+    mapping(address => mapping(uint256 => Ticket) public ticketsOwner;
     // Todo: Think of how to get ticketGroup by groupID
+    // TicketGroup[] ticketsGroups;
+
     mapping(uint256 => TicketGroup) public ticketsByPrice;
 
     constructor(uint256 ticketsAmount) public {
         amount = ticketsAmount;
     }
 
-    // Todo: Revert if such a price has been already defined
-    // Todo: Implement group ID
     function defineGroup(uint256 available, uint256 price) public onlyOwner {
         require(available <= amount, "More tickets than the maximum amount");
+        require(
+            ticketsByPrice[price] == 0x0,
+            "This price has been already defined"
+        );
+
         ticketsByPrice[price] = TicketGroup(price, available);
     }
 
-    // Todo: Should be able to buy tickets several times
-    // Todo: Should be able to buy tickets for different prices
-    function buy(uint256 quantity) external payable {
+    function buy(uint256 groupID, uint256 quantity) external payable {
         uint256 ticketPrice = msg.value.div(quantity);
 
         require(
@@ -49,14 +52,17 @@ contract TicketsStore is Ownable {
             "There are not any left tickets"
         );
 
-        ticketOwner[msg.sender] = Ticket(ticketPrice, quantity);
+        if(ticketsOwner[msg.sender][ticketPrice] == 0x0){
+            ticketsOwner[msg.sender][ticketPrice] = Ticket(ticketPrice, quantity);
+        }else{
+            ticketsOwner[msg.sender][ticketPrice].quantity = ticketsOwner[msg.sender][ticketPrice].quantity.add(quantity);
+        }
 
         ticketsByPrice[ticketPrice].available = ticketsByPrice[ticketPrice]
             .available
             .sub(quantity);
     }
 
-    // Todo: Consider withdrawing to be unlocked after some period
     function withdraw() external onlyOwner {
         msg.sender.transfer(address(this).balance);
     }
