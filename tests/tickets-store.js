@@ -8,8 +8,13 @@ describe('Tickets Store Contract', () => {
 
     const OWNER = accounts[0].signer;
     const ALICE = accounts[1].signer;
+    const KEVIN = accounts[2].signer;
 
     let contract;
+
+    const GROUP_ID = 0;
+    const OFFERING_DURATION = 24 * 60 * 60 * 7; // 1 week
+    const ETHER = ethers.utils.parseEther('1');
 
     const ALL_TICKETS = {
         price: ethers.utils.parseEther('10'),
@@ -17,7 +22,11 @@ describe('Tickets Store Contract', () => {
     }
 
     beforeEach(async () => {
-        contract = await deployer.deploy(TicketsStore, {});
+        contract = await deployer.deploy(TicketsStore, {}, OFFERING_DURATION);
+    });
+
+    describe('Initialization', function () {
+        
     });
 
     describe('Define Group', function () {
@@ -49,11 +58,8 @@ describe('Tickets Store Contract', () => {
         });
     });
 
-
     describe('Buy a ticket', function () {
-        describe('Buy from the primary market', function () {
-
-            const GROUP_ID = 0;
+        describe('Buy on primary market', function () {
 
             it('Should buy a ticket', async () => {
                 await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price);
@@ -71,7 +77,7 @@ describe('Tickets Store Contract', () => {
 
                 const group = await contract.groups(GROUP_ID);
                 assert(group.available.eq(ALL_TICKETS.available - 1));
-                assert(group.sellCurve.eq(ALL_TICKETS.price.add(1)));
+                assert(group.sellCurve.eq(ALL_TICKETS.price.add(ETHER)));
             });
 
             it('Should buy a ticket by providing higher price', async () => {
@@ -95,7 +101,28 @@ describe('Tickets Store Contract', () => {
 
                 const group = await contract.groups(GROUP_ID);
                 assert(group.available.eq(ALL_TICKETS.available - 1));
-                assert(group.sellCurve.eq(ALL_TICKETS.price.add(1)));
+                assert(group.sellCurve.eq(ALL_TICKETS.price.add(ETHER)));
+            });
+
+            it('Should buy second ticket on higher price because of the curve', async () => {
+                await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+
+                await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price }); // Buy for 10 ethers
+                const SECOND_TICKET_PRICE = ethers.utils.parseEther('11'); // Provide 11 ethers
+                await contract.from(KEVIN).buy(GROUP_ID, { value: SECOND_TICKET_PRICE }); // Buy next ticket for 11 ethers
+
+                
+                const kevinTicketPrice = await contract.ticketsOwner(KEVIN.address, GROUP_ID, 0);
+                assert(kevinTicketPrice.eq(SECOND_TICKET_PRICE));
+
+                const EXPECTED_WITHDRAWAL_BALANCE = 0; // 0 ethers
+                const kevinWithdrawalBalance = await contract.withdrawers(KEVIN.address);
+                assert(kevinWithdrawalBalance.eq(EXPECTED_WITHDRAWAL_BALANCE));
+
+                const storeBalance = await contract.withdrawers(contract.contractAddress)
+                assert(storeBalance.eq(
+                    ALL_TICKETS.price.add(SECOND_TICKET_PRICE)
+                ));
             });
     
             it('Should throw if wrong group id provided', async () => {
@@ -124,39 +151,134 @@ describe('Tickets Store Contract', () => {
             });
         });
 
-        describe('Buy from the secondary market', function () {
+        describe('Buy on secondary market', function () {
 
         });
     });
 
     describe('Resell a ticket', function () {
 
+        const RESELL_PRICE = ethers.utils.parseEther('20');
+
+        it('Should be able to resell a ticket', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price }); // Buy for 10 ethers
+
+            await contract.from(ALICE).resell(GROUP_ID, RESELL_PRICE);
+
+            const aliceResellTicketPrice = await contract.resellerPrices(ALICE.address, GROUP_ID, 0);
+            assert(aliceResellTicketPrice.eq(RESELL_PRICE));
+
+            const minimalGroupsPrice = await contract.minimalGroupsPrice(GROUP_ID);
+            assert(minimalGroupsPrice.reseller == ALICE.address);
+            assert(minimalGroupsPrice.minimalPrice.eq(RESELL_PRICE));
+        });
+
+        it('Should set group price to the reseller lowest price', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price }); // Buy for 10 ethers
+            await contract.from(KEVIN).buy(GROUP_ID, { value: ALL_TICKETS.price.add(ETHER) }); // Buy next ticket for 11 ethers
+
+            await contract.from(ALICE).resell(GROUP_ID, RESELL_PRICE);
+            await contract.from(KEVIN).resell(GROUP_ID, RESELL_PRICE.sub(1)); // Lowest resell price
+
+            const minimalGroupsPrice = await contract.minimalGroupsPrice(GROUP_ID);
+            assert(minimalGroupsPrice.reseller == KEVIN.address);
+            assert(minimalGroupsPrice.minimalPrice.eq(RESELL_PRICE.sub(1)));
+        });
+
+        it('Should throw if one does not own a ticket byt try to resell', async () => {
+            await assert.revertWith(
+                contract.from(ALICE).resell(GROUP_ID, RESELL_PRICE),
+                'No owned tickets'
+            );
+        });
     });
 
     describe('Refund a ticket', function () {
 
+        const TICKET_ID = 0;
+
+        it('Should be able to get refund', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price });
+
+            await assert.balanceChanged(
+                contract.from(ALICE).refund(GROUP_ID, TICKET_ID), 
+                ALICE, 
+                `${ALL_TICKETS.price}` // Expected refund amount
+            );
+
+            // Sell Curve for this group should drop on refund
+            const group = await contract.groups(GROUP_ID);
+            assert(group.sellCurve.eq(ALL_TICKETS.price));
+
+            const aliceTicketPrice = await contract.ticketsOwner(ALICE.address, GROUP_ID, TICKET_ID);
+            assert(aliceTicketPrice.eq(0));
+        });
+
+        it('Should throw if one wants to be refunded after offering period', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price });
+
+            await utils.timeTravel(deployer.provider, OFFERING_DURATION);
+
+            await assert.revertWith(
+                contract.from(ALICE).refund(GROUP_ID, TICKET_ID),
+                'Offering has ended'
+            );
+        });
+
+        it('Should throw if one tries to get refund for tickets he does not own', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+
+            await assert.revertWith(
+                contract.from(ALICE).refund(GROUP_ID, TICKET_ID),
+                'You don\'t own such a ticket'
+            );
+        });
+
+        it('[RE-ENCTRANCY] Should throw if one tries to get double-refund', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price });
+
+            await contract.from(ALICE).refund(GROUP_ID, TICKET_ID);
+            await assert.revertWith(
+                contract.from(ALICE).refund(GROUP_ID, TICKET_ID),
+                'Already refunded'
+            );
+        });
     });
-    // it('Should be able to buy a ticket', async () => {
-    //     await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price);
-    //     await contract.from(ALICE).buy(1, { value: ALL_TICKETS.price });
 
-    //     const ticketOwner = await contract.ticketOwner(ALICE.address);
-    //     assert(ticketOwner.price.eq(ALL_TICKETS.price));
-    //     assert(ticketOwner.quantity.eq(1));
+    describe('Withdraw', function () {
+        it('Should be able for a ticket owner to withdraw his money, if more provided', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
 
-    //     const availableTickets = await contract.ticketsByPrice(ALL_TICKETS.price);
-    //     assert(availableTickets.available.eq(ALL_TICKETS.available - 1));
-    // });
+            const HIGHER_PRICE = ethers.utils.parseEther('11'); // Provide 11 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: HIGHER_PRICE });
 
-    // it('Should be able for contract owner to withdraw store balance', async () => {
-    //     await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price);
-    //     await contract.from(ALICE).buy(1, { value: ALL_TICKETS.price });
+            // Alice ticket price is 10 ethers, she pays 11 ether => 1 ether should be withdrawn
+            await assert.balanceChanged(contract.from(ALICE).withdraw(), ALICE, `${ETHER}`);
+        });
 
-    //     const storeBalance = await contract.utils.getBalance();
-    //     await contract.from(OWNER).withdraw();
-    //     const storeBalanceAfterWithdraw = await contract.utils.getBalance();
+        it('Should be able for contract owner to withdraw tickets store balance', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price });
 
-    //     assert(storeBalance.eq(ALL_TICKETS.price));
-    //     assert(storeBalanceAfterWithdraw.eq(0));
-    // });
+            await assert.balanceChanged(contract.from(OWNER).withdraw(), OWNER, `${ALL_TICKETS.price}`);
+        });
+
+        it('[RE-ENTRANCY] Should be not possible to double withdraw', async () => {
+            await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price); // Set tickets price to 10 ethers
+            await contract.from(ALICE).buy(GROUP_ID, { value: ALL_TICKETS.price });
+
+            await contract.from(OWNER).withdraw();
+            await assert.balanceChanged(contract.from(OWNER).withdraw(), OWNER, '0');
+        });
+    });
+
+    describe('The whole flow', function () {
+
+    });
 });
