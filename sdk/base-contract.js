@@ -1,15 +1,19 @@
+const hedera = require('@hashgraph/sdk');
+
 class BaseContract {
 
-    constructor(provider, contractID) {
-        this.provider = provider;
+    constructor(client, contractID) {
+        this.client = client;
         this.contractID = contractID;
     }
 
-    __callMethod (name, ...params) {
-        await new hedera.ContractCallQuery()
+    async __callMethod (name, ...params) {
+        console.log(this.contractID);
+        
+        return await new hedera.ContractCallQuery()
             .setContractId(this.contractID)
             .setGas(1000)
-            .setFunction(name, params)
+            .setFunction(name, ...params)
             .execute(this.client);
     }
 }
