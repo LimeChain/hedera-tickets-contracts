@@ -1,4 +1,4 @@
-pragma solidity 0.6.7;
+pragma solidity 0.6.8;
 
 import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "./../node_modules/@openzeppelin/contracts/access/Ownable.sol";
@@ -70,8 +70,8 @@ contract TicketsStore is Ownable {
 
         GroupResell memory groupResell = minimalGroupsPrice[groupID];
 
-        ticketsOwner[msg.sender][groupID].push(minimalGroupsPrice.minimalPrice);
-        delete ticketsOwner[groupResell.reseller][groupID][groupResell.ticketID];
+        // ticketsOwner[msg.sender][groupID].push(minimalGroupsPrice.minimalPrice);
+        // delete ticketsOwner[groupResell.reseller][groupID][groupResell.ticketID];
 
         uint256 commission = groupResell.minimalPrice.mul(eventCommission).div(100);
         
