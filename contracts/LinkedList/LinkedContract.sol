@@ -31,15 +31,34 @@ contract LinkedContract {
         );
     }
 
+    function getNodeReseller(uint256 node, uint256 position)
+        external
+        view
+        returns (address)
+    {
+        return linkedList.nodes[node].resellers.all[position];
+    }
+
+    function getNodeResellersData(uint256 node)
+        external
+        view
+        returns (uint256, uint256)
+    {
+        return (
+            linkedList.nodes[node].resellers.first,
+            linkedList.nodes[node].resellers.length
+        );
+    }
+
     function getHead() external view returns (uint256) {
-        return linkedList.nodes[0].value;
+        return linkedList.startNode;
     }
 
     function getMidNode() external view returns (uint256) {
-        return linkedList.midNode.value;
+        return linkedList.midNode;
     }
 
     function getEndNode() external view returns (uint256) {
-        return linkedList.endNode.prev;
+        return linkedList.endNode;
     }
 }
