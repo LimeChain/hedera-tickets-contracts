@@ -1,9 +1,8 @@
-const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const deployer = new etherlime.EtherlimeGanacheDeployer();
 
 const LinkedList = require('./../build/LinkedList');
-const LinkedListContract = require('./../build/LinkedContract');
+const LinkedListContract = require('./../build/LinkedListContract');
 
 describe('Linked List', function () {
 
