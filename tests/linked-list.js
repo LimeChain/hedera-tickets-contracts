@@ -223,13 +223,7 @@ describe('Linked List', function () {
 
         // First resellers
         for (let i = 0; i < 3; i++) {
-            const reseller = await contract.getNodeReseller(elements[i], 0);
-            assert(reseller == OWNER.address); // Reseller address
-        }
-
-        // Second resellers
-        for (let i = 3; i < elements.length; i++) {
-            const reseller = await contract.getNodeReseller(elements[i], 1);
+            const reseller = await contract.getFirstReseller(elements[i]);
             assert(reseller == OWNER.address); // Reseller address
         }
     });

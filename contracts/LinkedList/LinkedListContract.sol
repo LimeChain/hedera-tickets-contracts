@@ -3,7 +3,7 @@ pragma solidity 0.6.7;
 import {LinkedList} from "./LinkedList.sol";
 
 
-contract LinkedContract {
+contract LinkedListContract {
     using LinkedList for LinkedList.Storage;
     LinkedList.Storage linkedList;
 
@@ -13,6 +13,10 @@ contract LinkedContract {
 
     function popHead() external {
         linkedList.popHead();
+    }
+
+    function length() external view returns (uint256) {
+        return linkedList.length;
     }
 
     function getNodeAt(uint256 position)
@@ -31,12 +35,9 @@ contract LinkedContract {
         );
     }
 
-    function getNodeReseller(uint256 node, uint256 position)
-        external
-        view
-        returns (address)
-    {
-        return linkedList.nodes[node].resellers.all[position];
+    function getFirstReseller(uint256 node) external view returns (address) {
+        uint256 index = linkedList.nodes[node].resellers.first;
+        return linkedList.nodes[node].resellers.all[index];
     }
 
     function getNodeResellersData(uint256 node)
