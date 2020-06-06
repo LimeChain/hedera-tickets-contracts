@@ -22,7 +22,7 @@ describe('Tickets Store Contract', () => {
     }
 
     beforeEach(async () => {
-        contract = await deployer.deploy(TicketsStore, {}, OFFERING_DURATION);
+        contract = await deployer.deploy(TicketsStore, {}, 5,  OFFERING_DURATION);
     });
 
     describe('Initialization', function () {

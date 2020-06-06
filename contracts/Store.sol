@@ -45,14 +45,12 @@ contract TicketsStore is Ownable {
 
     function buy(uint256 groupID) external payable {
         require(groups.length - 1 <= groupID, "Such tickets group does not exist");
-
-
-        bool hasOnSecondaryMarket = checkOnSecondaryMarket(groupID);
-        if(hasOnSecondaryMarket) {
-            buyOnSecondaryMarket(groupID);
-        }else{
+        // bool hasOnSecondaryMarket = checkOnSecondaryMarket(groupID);
+        // if(hasOnSecondaryMarket) {
+        //     buyOnSecondaryMarket(groupID);
+        // }else{
             buyOnPrimaryMarket(groupID);
-        }
+        // }
     }
 
     function checkOnSecondaryMarket(uint256 groupID) private view returns(bool) {
@@ -65,29 +63,29 @@ contract TicketsStore is Ownable {
     Todo: Set new minimalPrice
     Todo: Sellcurve drop mechanism
 */
-    function buyOnSecondaryMarket(uint256 groupID) private {
-        require(minimalGroupsPrice[groupID].minimalPrice <= msg.value, "Not enough money");
+    // function buyOnSecondaryMarket(uint256 groupID) private {
+    //     require(minimalGroupsPrice[groupID].minimalPrice <= msg.value, "Not enough money");
 
-        GroupResell memory groupResell = minimalGroupsPrice[groupID];
+    //     GroupResell memory groupResell = minimalGroupsPrice[groupID];
 
-        // ticketsOwner[msg.sender][groupID].push(minimalGroupsPrice.minimalPrice);
-        // delete ticketsOwner[groupResell.reseller][groupID][groupResell.ticketID];
+    //     // ticketsOwner[msg.sender][groupID].push(minimalGroupsPrice.minimalPrice);
+    //     // delete ticketsOwner[groupResell.reseller][groupID][groupResell.ticketID];
 
-        uint256 commission = groupResell.minimalPrice.mul(eventCommission).div(100);
+    //     uint256 commission = groupResell.minimalPrice.mul(eventCommission).div(100);
         
-        // Calculate withdraw amounts
-        withdrawers[address(this)] = withdrawers[address(this)].add(commission);
-        withdrawers[groupResell.reseller] = withdrawers[groupResell.reseller].add(
-            groupResell.minimalPrice.sub(commission)
-        );
-        // In case msg.sender has payed more
-        withdrawers[msg.sender] = withdrawers[msg.sender].add(
-            msg.value.sub(groupResell.minimalPrice)
-        );
+    //     // Calculate withdraw amounts
+    //     withdrawers[address(this)] = withdrawers[address(this)].add(commission);
+    //     withdrawers[groupResell.reseller] = withdrawers[groupResell.reseller].add(
+    //         groupResell.minimalPrice.sub(commission)
+    //     );
+    //     // In case msg.sender has payed more
+    //     withdrawers[msg.sender] = withdrawers[msg.sender].add(
+    //         msg.value.sub(groupResell.minimalPrice)
+    //     );
         
-        setGroupReseller(groupID);
-        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(calculateDrop());
-    }
+    //     setGroupReseller(groupID);
+    //     groups[groupID].sellCurve = groups[groupID].sellCurve.sub(calculateDrop());
+    // }
 
     // Todo: Implement soft mechanism for doing it
     function setGroupReseller(uint256 groupID) private view {
