@@ -9,6 +9,7 @@ describe('Linked List', function () {
     this.timeout(1000000)
 
     const OWNER = accounts[0].signer;
+    const NON_OWNER = accounts[1].signer;
 
     let contract;
 
@@ -39,7 +40,7 @@ describe('Linked List', function () {
             await deployContract();
 
             for (let j = 0; j < variants[i].length; j++) {
-                await contract.add(variants[i][j]);
+                await contract.add(variants[i][j], OWNER.address);
             }
 
             const node1 = await contract.getNodeAt(1);
@@ -167,7 +168,7 @@ describe('Linked List', function () {
 
         for (let i = 0; i < elements.length; i++) {
             process.stdout.write(`Uploading elements: ${Math.floor(i * 100 / (elements.length))}%\r`)
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
 
@@ -188,7 +189,7 @@ describe('Linked List', function () {
         const elements = [1, 5, 3, 5, 1, 3];
 
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         const node1 = await contract.getNodeAt(1);
@@ -230,7 +231,7 @@ describe('Linked List', function () {
     it('Should set head node properly', async () => {
         const elements = [1, 5, 3];
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         const headNodeValue = await contract.getHead();
@@ -240,7 +241,7 @@ describe('Linked List', function () {
     it('Should set mid node properly', async () => {
         const elements = [1, 5, 3];
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         const midNodeValue = await contract.getMidNode();
@@ -250,7 +251,7 @@ describe('Linked List', function () {
     it('Should pop head and move to next node', async () => {
         const elements = [1, 5, 3];
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         await contract.popHead();
@@ -265,7 +266,7 @@ describe('Linked List', function () {
     it('Should pop head and stay in current node', async () => {
         const elements = [1, 5, 3, 1];
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         await contract.popHead();
@@ -277,12 +278,29 @@ describe('Linked List', function () {
     it('Should move midNode correctly once head had been popped', async () => {
         const elements = [1, 5, 3, 4];
         for (let i = 0; i < elements.length; i++) {
-            await contract.add(elements[i]);
+            await contract.add(elements[i], OWNER.address);
         }
 
         await contract.popHead();
         const midNode = await contract.getMidNode();
 
         assert(midNode.eq(4));
+    });
+
+    describe('Only owner actions', function () {
+        it('Should be able only for owner to add elements', async () => {
+            const NUMBER = 1;
+            await assert.revertWith(
+                contract.from(NON_OWNER).add(NUMBER, OWNER.address),
+                'Ownable: caller is not the owner'
+            );
+        });
+
+        it('Should be able only for owner to pod head', async () => {
+            await assert.revertWith(
+                contract.from(NON_OWNER).popHead(),
+                'Ownable: caller is not the owner'
+            );
+        });
     });
 });

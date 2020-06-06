@@ -31,6 +31,11 @@ contract TicketsStore is Ownable {
     // Reseller | desired price | for ticket id
     mapping(address => mapping(uint256 => TicketForResell)) public ticketsForResell;
 
+    modifier onlyInSalesPeriod() {
+        require(now <= offeringExpiration, "Offering has ended");
+        _;
+    }
+
     constructor(uint256 commissionPercentage, uint256 duration) public {
         eventCommission = commissionPercentage;
         offeringExpiration = now.add(duration);
@@ -46,7 +51,7 @@ contract TicketsStore is Ownable {
         groups.push(TicketGroup(available, price, available, price, resellers));
     }
 
-    function buy(uint256 groupID) external payable {
+    function buy(uint256 groupID) external payable onlyInSalesPeriod {
         require(
             groups.length - 1 <= groupID,
             "Such tickets group does not exist"
@@ -82,7 +87,9 @@ contract TicketsStore is Ownable {
         address reseller = groups[groupID].resellers.getFirstReseller(price);
         ticketsOwner[msg.sender][groupID].push(price);
         // Remove reselled ticket id
-        delete ticketsOwner[reseller][groupID];
+        delete ticketsOwner[reseller][groupID][ticketsForResell[reseller][groupID]
+            .id];
+        delete ticketsForResell[reseller][groupID];
 
         uint256 commission = price.mul(eventCommission).div(100);
         // Calculate withdraw amounts
@@ -131,10 +138,6 @@ contract TicketsStore is Ownable {
         uint256 desiredPrice
     ) public {
         require(
-            ticketsOwner[msg.sender][groupID].length > 0,
-            "No owned tickets"
-        );
-        require(
             ticketsOwner[msg.sender][groupID][ticketID] > 0,
             "You are not able to resell a ticket you don't own"
         );
@@ -143,7 +146,7 @@ contract TicketsStore is Ownable {
             "Only one ticket for resell per group at a time"
         );
 
-        groups[groupID].resellers.add(desiredPrice);
+        groups[groupID].resellers.add(desiredPrice, msg.sender);
         ticketsForResell[msg.sender][groupID] = TicketForResell(
             ticketID,
             ticketsOwner[msg.sender][groupID][ticketID],
@@ -152,14 +155,16 @@ contract TicketsStore is Ownable {
     }
 
     // Refund
-    function refund(uint256 groupID, uint256 ticketID) external {
-        require(now <= offeringExpiration, "Offering has ended");
+    function refund(uint256 groupID, uint256 ticketID)
+        external
+        onlyInSalesPeriod
+    {
         require(
             ticketsOwner[msg.sender][groupID].length > ticketID,
             "You don't own such a ticket"
         );
         require(
-            ticketsForResell[msg.sender][groupID].id != ticketID,
+            ticketsForResell[msg.sender][groupID].boughtPrice == 0,
             "This ticket has been stated for resell"
         );
         // Re-entrancy guard for curve dropping

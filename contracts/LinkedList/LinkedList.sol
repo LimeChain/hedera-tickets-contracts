@@ -24,7 +24,11 @@ library LinkedList {
         mapping(uint256 => Node) nodes;
     }
 
-    function add(Storage storage self, uint256 value) public {
+    function add(
+        Storage storage self,
+        uint256 value,
+        address reseller
+    ) public {
         if (self.nodes[value].value != value) {
             if (self.length == 0) {
                 setFirstNode(self, value);
@@ -40,7 +44,7 @@ library LinkedList {
         }
 
         self.nodes[value].resellers.length++;
-        self.nodes[value].resellers.all.push(msg.sender);
+        self.nodes[value].resellers.all.push(reseller);
     }
 
     function setFirstNode(Storage storage self, uint256 value) internal {
@@ -140,12 +144,16 @@ library LinkedList {
 
     function popHead(Storage storage self) public {
         if (self.nodes[self.startNode].resellers.length == 1) {
-            uint256 nextHeadNode = self.nodes[self.startNode].next;
-            delete self.nodes[self.startNode];
+            if (self.length > 1) {
+                uint256 nextHeadNode = self.nodes[self.startNode].next;
+                self.nodes[nextHeadNode].prev = nextHeadNode;
+                self.startNode = nextHeadNode;
+                moveMidNode(self, self.nodes[self.midNode].next);
+            } else {
+                self.startNode = 0;
+            }
 
-            self.nodes[nextHeadNode].prev = nextHeadNode;
-            self.startNode = nextHeadNode;
-            moveMidNode(self, self.nodes[self.midNode].next);
+            delete self.nodes[self.startNode];
         } else {
             Queue storage resellers = self.nodes[self.startNode].resellers;
             delete resellers.all[resellers.first];
