@@ -8,8 +8,6 @@ class BaseContract {
     }
 
     async __callMethod (name, ...params) {
-        console.log(this.contractID);
-        
         return await new hedera.ContractCallQuery()
             .setContractId(this.contractID)
             .setGas(1000)

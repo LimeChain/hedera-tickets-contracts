@@ -20,7 +20,8 @@ describe.only('Ticket Store SDK', () => {
 
     
     let ticketStoreSDK;
-    const TICKETS_AMOUNT = 10;
+    const COMMISSION_PERCENTAGE = 20;
+    const DURATION_PERIOD = 7 * 24 * 60 * 60; // 7 days
 
     const ALL_TICKETS = {
         price: ethers.utils.parseEther('10'),
@@ -29,10 +30,21 @@ describe.only('Ticket Store SDK', () => {
     
     beforeEach(async () => {
         const contractFactory = new ContractFactory(client, privateKey.publicKey);
-        const TICKETS_AMOUNT = new hedera.ContractFunctionParams().addUint256(new BigNumber(10));
-        const contractId = await contractFactory.deploy(TicketsStoreByteCode, TICKETS_AMOUNT);
+        const COMMISSION = new hedera.ContractFunctionParams().addUint256(new BigNumber(COMMISSION_PERCENTAGE));
+        const DURATION = new hedera.ContractFunctionParams().addUint256(new BigNumber(DURATION_PERIOD));
+        // console.log('1. here? ');
+ 
+        // const contractId = await contractFactory.deploy(TicketsStoreByteCode, COMMISSION, DURATION);
+        // // const contractId = await contractFactory.deploy(TicketsStoreByteCode, COMMISSION_PERCENTAGE, DURATION_PERIOD);
+        // console.log('here? ');
         
-        ticketStoreSDK = await new TicketStoreSDK(client, contractId)
+        // ticketStoreSDK = await new TicketStoreSDK(client, contractId)
+
+        console.log(client._getOperatorAccountId());
+        console.log(client._getOperatorKey());
+        
+        return
+
     });
 
     it.only('Should get correct amount from contract', async () => {
