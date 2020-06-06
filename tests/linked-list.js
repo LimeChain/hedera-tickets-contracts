@@ -256,8 +256,9 @@ describe('Linked List', function () {
 
         await contract.popHead();
         const head = await contract.getHead();
-        const headNode = await contract.getNodeAt(head.toString());
+        const headNode = await contract.getNodeAt(head);
 
+        console.log(headNode)
         assert(headNode[0].eq(3)); // Node value
         assert(headNode[1].eq(3)); // Node prev
         assert(headNode[2].eq(5)); // Node next

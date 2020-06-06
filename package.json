@@ -16,7 +16,7 @@
   "devDependencies": {},
   "scripts": {
     "eth": "etherlime ganache",
-    "test": "etherlime test ./tests/*.js --skip-compilation",
+    "test": "etherlime test ./tests --skip-compilation",
     "compile": "etherlime compile",
     "hedera-start": "node ./hedera/playground",
     "hedera-deploy": "node ./hedera/deployment"

@@ -36,13 +36,14 @@ describe('Tickets Store Contract', () => {
             const FIVE_MINUTES_LATER = (await utils.latestTimestamp(deployer.provider)) + 5 * 60;
             await utils.setTimeTo(deployer.provider, FIVE_MINUTES_LATER);
 
+            const TIME_NOW = await utils.latestTimestamp(deployer.provider);
             contract = await deployer.deploy(TicketsStore, { LinkedList: (await deployer.deploy(LinkedList)).contractAddress }, COMMISSION, OFFERING_DURATION);
 
             const commission = await contract.eventCommission();
             const offeringExpiration = await contract.offeringExpiration();
 
             assert(commission.eq(25));
-            assert(offeringExpiration.eq(FIVE_MINUTES_LATER + OFFERING_DURATION));
+            assert(offeringExpiration.eq(TIME_NOW + OFFERING_DURATION));
         });
     });
 

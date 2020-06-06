@@ -146,14 +146,16 @@ library LinkedList {
         if (self.nodes[self.startNode].resellers.length == 1) {
             if (self.length > 1) {
                 uint256 nextHeadNode = self.nodes[self.startNode].next;
-                self.nodes[nextHeadNode].prev = nextHeadNode;
+
+                delete self.nodes[self.startNode];
                 self.startNode = nextHeadNode;
+
+                self.nodes[nextHeadNode].prev = nextHeadNode;
                 moveMidNode(self, self.nodes[self.midNode].next);
             } else {
+                delete self.nodes[self.startNode];
                 self.startNode = 0;
             }
-
-            delete self.nodes[self.startNode];
         } else {
             Queue storage resellers = self.nodes[self.startNode].resellers;
             delete resellers.all[resellers.first];
