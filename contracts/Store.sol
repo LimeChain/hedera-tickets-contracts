@@ -1,9 +1,10 @@
 pragma solidity 0.6.8;
 
+import "./LinkedList/LinkedListContract.sol";
 import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "./../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
-// Todo: Implement a period
+
 contract TicketsStore is Ownable {
     using SafeMath for uint256;
 
@@ -12,22 +13,23 @@ contract TicketsStore is Ownable {
 
     mapping(address => uint256) public withdrawers;
     mapping(address => mapping(uint256 => uint256[])) public ticketsOwner;
-    mapping(address => mapping(uint256 => uint256[])) public resellerPrices;
-
 
     struct TicketGroup {
         uint256 total;
         uint256 price;
         uint256 available;
         uint256 sellCurve;
+        LinkedListContract resellers; // LinkedList resellers contract
     }
     TicketGroup[] public groups;
 
-    struct GroupResell {
-        address reseller;
-        uint256 minimalPrice;
+    struct TicketForResell {
+        uint256 id;
+        uint256 boughtPrice;
+        uint256 resellPrice;
     }
-    mapping(uint256 => GroupResell) public minimalGroupsPrice;
+    // Reseller | desired price | for ticket id
+    mapping(address => mapping(uint256 => TicketForResell)) public ticketsForResell;
 
     constructor(uint256 commissionPercentage, uint256 duration) public {
         eventCommission = commissionPercentage;
@@ -40,62 +42,69 @@ contract TicketsStore is Ownable {
             require(groups[i].price != price, "Such a group already exists");
         }
 
-        groups.push(TicketGroup(available, price, available, price));
+        LinkedListContract resellers = new LinkedListContract();
+        groups.push(TicketGroup(available, price, available, price, resellers));
     }
 
     function buy(uint256 groupID) external payable {
-        require(groups.length - 1 <= groupID, "Such tickets group does not exist");
-        // bool hasOnSecondaryMarket = checkOnSecondaryMarket(groupID);
-        // if(hasOnSecondaryMarket) {
-        //     buyOnSecondaryMarket(groupID);
-        // }else{
+        require(
+            groups.length - 1 <= groupID,
+            "Such tickets group does not exist"
+        );
+
+        bool hasOnSecondaryMarket = checkOnSecondaryMarket(groupID);
+        if (hasOnSecondaryMarket) {
+            buyOnSecondaryMarket(groupID);
+        } else {
             buyOnPrimaryMarket(groupID);
-        // }
+        }
     }
 
-    function checkOnSecondaryMarket(uint256 groupID) private view returns(bool) {
-        return 
-        minimalGroupsPrice[groupID].reseller != address(0) && 
-        minimalGroupsPrice[groupID].minimalPrice < groups[groupID].sellCurve;
-    }
-// Secondary Market
- /*
-    Todo: Set new minimalPrice
-    Todo: Sellcurve drop mechanism
-*/
-    // function buyOnSecondaryMarket(uint256 groupID) private {
-    //     require(minimalGroupsPrice[groupID].minimalPrice <= msg.value, "Not enough money");
-
-    //     GroupResell memory groupResell = minimalGroupsPrice[groupID];
-
-    //     // ticketsOwner[msg.sender][groupID].push(minimalGroupsPrice.minimalPrice);
-    //     // delete ticketsOwner[groupResell.reseller][groupID][groupResell.ticketID];
-
-    //     uint256 commission = groupResell.minimalPrice.mul(eventCommission).div(100);
-        
-    //     // Calculate withdraw amounts
-    //     withdrawers[address(this)] = withdrawers[address(this)].add(commission);
-    //     withdrawers[groupResell.reseller] = withdrawers[groupResell.reseller].add(
-    //         groupResell.minimalPrice.sub(commission)
-    //     );
-    //     // In case msg.sender has payed more
-    //     withdrawers[msg.sender] = withdrawers[msg.sender].add(
-    //         msg.value.sub(groupResell.minimalPrice)
-    //     );
-        
-    //     setGroupReseller(groupID);
-    //     groups[groupID].sellCurve = groups[groupID].sellCurve.sub(calculateDrop());
-    // }
-
-    // Todo: Implement soft mechanism for doing it
-    function setGroupReseller(uint256 groupID) private view {
-        // minimalGroupsPrice[groupID].reseller = newReseller;
-        // minimalGroupsPrice[groupID].ticketID = ticketID;
-        // minimalGroupsPrice[groupID].minimalPrice = ticketsOwner[msg.sender][groupID][ticketID];
+    function checkOnSecondaryMarket(uint256 groupID)
+        private
+        view
+        returns (bool)
+    {
+        return
+            groups[groupID].resellers.length() > 0 &&
+            groups[groupID].resellers.getHead() < groups[groupID].sellCurve;
     }
 
-// Primary Market
-    // Todo: Sellcurve up mechanism
+    // Secondary Market
+    /*
+        Todo: Sellcurve drop mechanism
+    */
+    function buyOnSecondaryMarket(uint256 groupID) private {
+        uint256 price = groups[groupID].resellers.getHead();
+
+        require(price <= msg.value, "Not enough money");
+
+        address reseller = groups[groupID].resellers.getFirstReseller(price);
+        ticketsOwner[msg.sender][groupID].push(price);
+        // Remove reselled ticket id
+        delete ticketsOwner[reseller][groupID];
+
+        uint256 commission = price.mul(eventCommission).div(100);
+        // Calculate withdraw amounts
+        withdrawers[address(this)] = withdrawers[address(this)].add(commission);
+        withdrawers[reseller] = withdrawers[reseller].add(
+            price.sub(commission)
+        );
+        // In case msg.sender has payed more
+        withdrawers[msg.sender] = withdrawers[msg.sender].add(
+            msg.value.sub(price)
+        );
+
+        groups[groupID].resellers.popHead();
+        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(
+            calculateDrop()
+        );
+    }
+
+    // Primary Market
+    /*
+        Todo: Sellcurve drop mechanism
+    */
     function buyOnPrimaryMarket(uint256 groupID) private {
         TicketGroup storage group = groups[groupID];
 
@@ -104,7 +113,9 @@ contract TicketsStore is Ownable {
 
         ticketsOwner[msg.sender][groupID].push(group.sellCurve);
 
-        withdrawers[address(this)] = withdrawers[address(this)].add(group.sellCurve);
+        withdrawers[address(this)] = withdrawers[address(this)].add(
+            group.sellCurve
+        );
         withdrawers[msg.sender] = withdrawers[msg.sender].add(
             msg.value.sub(group.sellCurve)
         );
@@ -113,51 +124,67 @@ contract TicketsStore is Ownable {
         group.sellCurve = group.sellCurve.add(calculateUp());
     }
 
-// Resell
-    // Todo: Once reselled -> could not be refunded
-    // Todo: Consider ticket ids so a reseller could resell some tickets and could get refunded for others
-    function resell(uint256 groupID, uint256 desiredPrice) public {
+    // Resell
+    function resell(
+        uint256 groupID,
+        uint256 ticketID,
+        uint256 desiredPrice
+    ) public {
         require(
             ticketsOwner[msg.sender][groupID].length > 0,
             "No owned tickets"
         );
+        require(
+            ticketsOwner[msg.sender][groupID][ticketID] > 0,
+            "You are not able to resell a ticket you don't own"
+        );
+        require(
+            ticketsForResell[msg.sender][groupID].boughtPrice == 0,
+            "Only one ticket for resell per group at a time"
+        );
 
-        resellerPrices[msg.sender][groupID].push(desiredPrice);
-
-        // Only for first reseller for a group
-        if(minimalGroupsPrice[groupID].reseller == address(0)){
-            minimalGroupsPrice[groupID] = GroupResell(msg.sender, desiredPrice);
-        }
-
-        if(minimalGroupsPrice[groupID].minimalPrice > desiredPrice){
-            minimalGroupsPrice[groupID].reseller = msg.sender;
-            minimalGroupsPrice[groupID].minimalPrice = desiredPrice;
-        }
+        groups[groupID].resellers.add(desiredPrice);
+        ticketsForResell[msg.sender][groupID] = TicketForResell(
+            ticketID,
+            ticketsOwner[msg.sender][groupID][ticketID],
+            desiredPrice
+        );
     }
 
-// Refund
-    // Todo: Once reselled -> could not be refunded
+    // Refund
     function refund(uint256 groupID, uint256 ticketID) external {
         require(now <= offeringExpiration, "Offering has ended");
-        require(ticketsOwner[msg.sender][groupID].length > ticketID, "You don't own such a ticket");
+        require(
+            ticketsOwner[msg.sender][groupID].length > ticketID,
+            "You don't own such a ticket"
+        );
+        require(
+            ticketsForResell[msg.sender][groupID].id != ticketID,
+            "This ticket has been stated for resell"
+        );
         // Re-entrancy guard for curve dropping
-        require(ticketsOwner[msg.sender][groupID][ticketID] > 0, "Already refunded");
-        
+        require(
+            ticketsOwner[msg.sender][groupID][ticketID] > 0,
+            "Already refunded"
+        );
+
         // Prevent re-entrancy atack
         uint256 refundPrice = ticketsOwner[msg.sender][groupID][ticketID];
         delete ticketsOwner[msg.sender][groupID][ticketID];
-        
+
         msg.sender.transfer(refundPrice);
 
-        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(calculateDrop());
+        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(
+            calculateDrop()
+        );
     }
 
-// Withdraw
+    // Withdraw
     function withdraw() external {
         address payable receiver = payable(msg.sender);
         address payable moneyOwner = payable(msg.sender);
 
-        if(msg.sender == owner()){
+        if (msg.sender == owner()) {
             moneyOwner = address(this);
         }
 
@@ -167,16 +194,16 @@ contract TicketsStore is Ownable {
         receiver.transfer(amount);
     }
 
-// Formulas
+    // Formulas
     // Todo: Implement it
-    function calculateDrop() private view returns(uint256) {
+    function calculateDrop() private view returns (uint256) {
         return 1000000000000000000; // 1 ether
     }
 
     // Todo: Implement it
-    function calculateUp() private view returns(uint256) {
+    function calculateUp() private view returns (uint256) {
         return 1000000000000000000; // 1 ether
     }
 
-    fallback() external payable { }
+    receive() external payable {}
 }
