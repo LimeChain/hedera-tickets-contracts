@@ -1,17 +1,18 @@
 pragma solidity 0.6.7;
 
 import {LinkedList} from "./LinkedList.sol";
+import "./../../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract LinkedListContract {
+contract LinkedListContract is Ownable {
     using LinkedList for LinkedList.Storage;
     LinkedList.Storage linkedList;
 
-    function add(uint256 value) external {
-        linkedList.add(value);
+    function add(uint256 value, address reseller) external onlyOwner {
+        linkedList.add(value, reseller);
     }
 
-    function popHead() external {
+    function popHead() external onlyOwner {
         linkedList.popHead();
     }
 
