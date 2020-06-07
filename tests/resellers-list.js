@@ -1,8 +1,7 @@
 const etherlime = require('etherlime-lib');
 const deployer = new etherlime.EtherlimeGanacheDeployer();
 
-const LinkedList = require('./../build/LinkedList');
-const LinkedListContract = require('./../build/LinkedListContract');
+const ResellersList = require('./../build/ResellersList');
 
 describe('Linked List', function () {
 
@@ -14,12 +13,7 @@ describe('Linked List', function () {
     let contract;
 
     async function deployContract () {
-        const library = await deployer.deploy(LinkedList);
-
-        const libraries = {
-            LinkedList: library.contractAddress
-        };
-        contract = await deployer.deploy(LinkedListContract, libraries);
+        contract = await deployer.deploy(ResellersList);
     }
 
     beforeEach(async () => {
@@ -258,7 +252,6 @@ describe('Linked List', function () {
         const head = await contract.getHead();
         const headNode = await contract.getNodeAt(head);
 
-        console.log(headNode)
         assert(headNode[0].eq(3)); // Node value
         assert(headNode[1].eq(3)); // Node prev
         assert(headNode[2].eq(5)); // Node next
