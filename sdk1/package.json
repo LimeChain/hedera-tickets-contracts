@@ -1,0 +1,30 @@
+{
+  "name": "hedera-tickets-contracts-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha ./tests --reporter spec --timeout 10000"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.2.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LimeChain/hedera-tickets-contracts.git"
+  },
+  "author": "EventCo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/LimeChain/hedera-tickets-contracts/issues"
+  },
+  "homepage": "https://github.com/LimeChain/hedera-tickets-contracts#readme",
+  "dependencies": {
+    "@hashgraph/sdk": "^1.1.12",
+    "bignumber.js": "^9.0.0"
+  }
+}
