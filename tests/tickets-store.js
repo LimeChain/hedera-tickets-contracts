@@ -2,11 +2,10 @@ const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const deployer = new etherlime.EtherlimeGanacheDeployer();
 
-const LinkedList = require('./../build/LinkedList');
-const LinkedListContract = require('./../build/LinkedListContract');
+const ResellersList = require('./../build/ResellersList');
 const TicketsStore = require('./../build/TicketsStore');
 
-describe('Tickets Store Contract', () => {
+describe.only('Tickets Store Contract', () => {
 
     const OWNER = accounts[0].signer;
     const ALICE = accounts[1].signer;
@@ -28,7 +27,8 @@ describe('Tickets Store Contract', () => {
     }
 
     beforeEach(async () => {
-        contract = await deployer.deploy(TicketsStore, { LinkedList: (await deployer.deploy(LinkedList)).contractAddress }, COMMISSION, OFFERING_DURATION);
+        // contract = await deployer.deploy(TicketsStore, { LinkedList: (await deployer.deploy(LinkedList)).contractAddress }, COMMISSION, OFFERING_DURATION);
+        contract = await deployer.deploy(TicketsStore, {}, COMMISSION, OFFERING_DURATION);
     });
 
     describe('Initialization', function () {
@@ -37,7 +37,7 @@ describe('Tickets Store Contract', () => {
             await utils.setTimeTo(deployer.provider, FIVE_MINUTES_LATER);
 
             const TIME_NOW = await utils.latestTimestamp(deployer.provider);
-            contract = await deployer.deploy(TicketsStore, { LinkedList: (await deployer.deploy(LinkedList)).contractAddress }, COMMISSION, OFFERING_DURATION);
+            contract = await deployer.deploy(TicketsStore, {}, COMMISSION, OFFERING_DURATION);
 
             const commission = await contract.eventCommission();
             const offeringExpiration = await contract.offeringExpiration();
@@ -217,7 +217,7 @@ describe('Tickets Store Contract', () => {
                 assert(orgWithdrawBalance.eq(ORG_COMMISSION.add(ALL_TICKETS.price))); // 12,5 ethers
 
                 const resellersListAddress = (await contract.groups(GROUP_ID)).resellers;
-                const resellerListContract = await etherlime.ContractAt(LinkedListContract, resellersListAddress);
+                const resellerListContract = await etherlime.ContractAt(ResellersList, resellersListAddress);
                 const listHead = await resellerListContract.getHead();
                 assert(listHead == 0); // Alice has been popped successfully
 
@@ -279,7 +279,7 @@ describe('Tickets Store Contract', () => {
             assert(ticketForResell.resellPrice.eq(RESELL_PRICE));
 
             const resellersListAddress = (await contract.groups(GROUP_ID)).resellers;
-            const resellerListContract = await etherlime.ContractAt(LinkedListContract, resellersListAddress);
+            const resellerListContract = await etherlime.ContractAt(ResellersList, resellersListAddress);
 
             const listHead = await resellerListContract.getHead();
             const firstReseller = await resellerListContract.getFirstReseller(listHead.toString());

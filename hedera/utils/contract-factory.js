@@ -3,7 +3,7 @@ const FileFactory = require('./file-factory');
 
 class ContractFactory {
 
-    constructor(client, publicKey) {
+    constructor (client, publicKey) {
         this.client = client;
         this.fileFactory = new FileFactory(client, publicKey);
     }
@@ -12,8 +12,8 @@ class ContractFactory {
         const fileId = await this.fileFactory.createFile(bytecode);
 
         const transaction = new hedera.ContractCreateTransaction();
-        transaction.setMaxTransactionFee(new hedera.Hbar(20));
-        transaction.setGas(500000);
+        transaction.setMaxTransactionFee(new hedera.Hbar(200));
+        transaction.setGas(1000000);
         transaction.setConstructorParams(...params);
         transaction.setBytecodeFileId(fileId);
 

@@ -1,6 +1,6 @@
 pragma solidity 0.6.8;
 
-import "./LinkedList/LinkedListContract.sol";
+import "./ResellersList.sol";
 import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
 import "./../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
@@ -19,7 +19,7 @@ contract TicketsStore is Ownable {
         uint256 price;
         uint256 available;
         uint256 sellCurve;
-        LinkedListContract resellers; // LinkedList resellers contract
+        ResellersList resellers; // LinkedList resellers contract
     }
     TicketGroup[] public groups;
 
@@ -47,7 +47,7 @@ contract TicketsStore is Ownable {
             require(groups[i].price != price, "Such a group already exists");
         }
 
-        LinkedListContract resellers = new LinkedListContract();
+        ResellersList resellers = new ResellersList();
         groups.push(TicketGroup(available, price, available, price, resellers));
     }
 
