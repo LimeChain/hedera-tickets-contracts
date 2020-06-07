@@ -17,10 +17,14 @@
     "type": "git",
     "url": "git+https://github.com/LimeChain/hedera-tickets-contracts.git"
   },
-  "author": "LimeChain",
+  "author": "EventCo",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/LimeChain/hedera-tickets-contracts/issues"
   },
-  "homepage": "https://github.com/LimeChain/hedera-tickets-contracts#readme"
+  "homepage": "https://github.com/LimeChain/hedera-tickets-contracts#readme",
+  "dependencies": {
+    "@hashgraph/sdk": "^1.1.12",
+    "bignumber.js": "^9.0.0"
+  }
 }
