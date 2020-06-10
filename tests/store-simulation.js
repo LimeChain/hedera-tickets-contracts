@@ -2,7 +2,6 @@ const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const deployer = new etherlime.EtherlimeGanacheDeployer();
 
-const ResellersList = require('./../build/ResellersList');
 const TicketsStore = require('./../build/TicketsStore');
 
 describe('Simulator', function () {
@@ -83,7 +82,7 @@ describe('Simulator', function () {
         );
     });
 
-    it.only('Should trace the curve change in case first 50% of bought tickets get resell', async () => {
+    it('Should trace the curve change in case first 50% of bought tickets get resell', async () => {
         await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price, ALL_TICKETS.increase);
 
         let group = await contract.groups(GROUP_ID);
