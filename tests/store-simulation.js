@@ -5,7 +5,7 @@ const deployer = new etherlime.EtherlimeGanacheDeployer();
 const ResellersList = require('./../build/ResellersList');
 const TicketsStore = require('./../build/TicketsStore');
 
-describe.only('Simulator', function () {
+describe('Simulator', function () {
 
     this.timeout(1000000)
 
@@ -41,7 +41,7 @@ describe.only('Simulator', function () {
             // Resell with 0.01 units of money less then increase
             const RESELL_PRICE = ticketPrice.add(
                 ALL_TICKETS.increase.sub(ethers.utils.parseEther('0.01'))
-            )
+            );
 
             await contract.from(ALICE).buy(GROUP_ID, { value: ticketPrice });
             await contract.from(ALICE).resell(GROUP_ID, i, RESELL_PRICE);
@@ -63,7 +63,7 @@ describe.only('Simulator', function () {
         }
     });
 
-    it.only('Should trace the curve change in case there are not any resellers', async () => {
+    it('Should trace the curve change in case there are not any resellers', async () => {
         await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price, ALL_TICKETS.increase);
 
         let ticketPrice = ALL_TICKETS.price;
@@ -72,7 +72,7 @@ describe.only('Simulator', function () {
             ticketPrice = ticketPrice.add(ALL_TICKETS.increase);
         }
 
-        group = await contract.groups(GROUP_ID);
+        const group = await contract.groups(GROUP_ID);
         assert(group.bought.eq(ALL_TICKETS.available + 1));
         /* 
             Price = 100 * 0.25 + 10 = 35
@@ -83,33 +83,44 @@ describe.only('Simulator', function () {
         );
     });
 
-    it('Should trace the curve change in case first 50% of bought tickets get resell', async () => {
+    it.only('Should trace the curve change in case first 50% of bought tickets get resell', async () => {
         await contract.from(OWNER).defineGroup(ALL_TICKETS.available, ALL_TICKETS.price, ALL_TICKETS.increase);
 
+        let group = await contract.groups(GROUP_ID);
+        console.log('Ratio before buying', ethers.utils.formatEther(group.ratio));
+
         let ticketPrice = ALL_TICKETS.price;
-        for (let i = 0; i < ALL_TICKETS.available; i++) {
-            // Resell with 0.01 units of money less then increase
-            const RESELL_PRICE = ticketPrice.add(
-                ALL_TICKETS.increase.sub(ethers.utils.parseEther('0.01'))
-            )
+        for (let i = 0; i < ALL_TICKETS.available / 2; i++) {
+            process.stdout.write(`Buying tickets: ${Math.floor((i + 1) * 200 / (ALL_TICKETS.available))}%\r`)
 
             await contract.from(ALICE).buy(GROUP_ID, { value: ticketPrice });
-            await contract.from(ALICE).resell(GROUP_ID, i, RESELL_PRICE);
+            ticketPrice = ticketPrice.add(ALL_TICKETS.increase);
+        }
 
-            let group = await contract.groups(GROUP_ID);
-            await contract.from(KEVIN).buy(GROUP_ID, { value: RESELL_PRICE });
-
+        for (let i = 0; i < ALL_TICKETS.available / 2; i++) {
             group = await contract.groups(GROUP_ID);
-            console.log('---------------')
             console.log('sellCurve', ethers.utils.formatEther(group.sellCurve.toString()));
-            console.log('ratio', ethers.utils.formatEther(group.ratio.toString()))
-
-            assert(group.bought.eq(i + 2));
-            assert(group.sellCurve.eq(
-                ticketPrice.add(ALL_TICKETS.increase).sub(group.ratio))
+            // Resell with 0.01 less then the current price
+            const RESELL_PRICE = group.sellCurve.sub(
+                (ethers.utils.parseEther('0.01'))
             );
 
-            ticketPrice = group.sellCurve;
+            await contract.from(ALICE).resell(GROUP_ID, i, RESELL_PRICE);
+            await contract.from(KEVIN).buy(GROUP_ID, { value: RESELL_PRICE });
         }
+
+        group = await contract.groups(GROUP_ID);
+        console.log('Ratio after 50% resell', ethers.utils.formatEther(group.ratio));
+
+        ticketPrice = group.sellCurve;
+        for (let i = 0; i < ALL_TICKETS.available / 2; i++) {
+            process.stdout.write(`Buying tickets: ${Math.floor((i + 1) * 200 / (ALL_TICKETS.available))}%\r`)
+
+            await contract.from(ALICE).buy(GROUP_ID, { value: ticketPrice });
+            ticketPrice = ticketPrice.add(ALL_TICKETS.increase);
+        }
+
+        group = await contract.groups(GROUP_ID);
+        console.log('Price after next 50% sell', ethers.utils.formatEther(group.sellCurve));
     });
 });
