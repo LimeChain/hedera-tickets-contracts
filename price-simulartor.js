@@ -2,8 +2,8 @@ let total = 100;
 let available = total;
 let purchased = 1;
 
-let price = 200;
-let increase = 0.05;
+let price = 10;
+let increase = 0.25;
 let ratio = increase;
 
 function buy () {

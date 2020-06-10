@@ -148,6 +148,8 @@ contract ResellersList is Ownable {
                 delete list.nodes[list.startNode];
                 list.startNode = 0;
             }
+
+            list.length--;
         } else {
             Queue storage resellers = list.nodes[list.startNode].resellers;
             delete resellers.all[resellers.first];

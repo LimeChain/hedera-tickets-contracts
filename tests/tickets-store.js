@@ -28,7 +28,6 @@ describe('Tickets Store Contract', () => {
     }
 
     beforeEach(async () => {
-        // contract = await deployer.deploy(TicketsStore, { LinkedList: (await deployer.deploy(LinkedList)).contractAddress }, COMMISSION, OFFERING_DURATION);
         contract = await deployer.deploy(TicketsStore, {}, COMMISSION, OFFERING_DURATION);
     });
 
@@ -432,7 +431,4 @@ describe('Tickets Store Contract', () => {
         });
     });
 
-    describe('Simulator', function () {
-
-    });
 });
