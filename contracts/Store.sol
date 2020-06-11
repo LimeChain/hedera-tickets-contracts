@@ -15,10 +15,14 @@ contract TicketsStore is Ownable {
     mapping(address => mapping(uint256 => uint256[])) public ticketsOwner;
 
     struct TicketGroup {
+        // General fields
         uint256 total;
+        uint256 bought;
         uint256 price;
-        uint256 available;
+        // Sell curve fields
         uint256 sellCurve;
+        uint256 increase;
+        uint256 ratio;
         ResellersList resellers; // LinkedList resellers contract
     }
     TicketGroup[] public groups;
@@ -41,14 +45,29 @@ contract TicketsStore is Ownable {
         offeringExpiration = now.add(duration);
     }
 
-    function defineGroup(uint256 available, uint256 price) public onlyOwner {
+    function defineGroup(
+        uint256 total,
+        uint256 price,
+        uint256 increase
+    ) public onlyOwner {
         require(price > 0, "Price can not be 0");
+        require(total > 0, "Number of available tickets should be at least 1");
         for (uint256 i = 0; i < groups.length; i++) {
             require(groups[i].price != price, "Such a group already exists");
         }
 
         ResellersList resellers = new ResellersList();
-        groups.push(TicketGroup(available, price, available, price, resellers));
+        groups.push(
+            TicketGroup(
+                total.add(1),
+                1,
+                price,
+                price,
+                increase,
+                increase.div(total),
+                resellers
+            )
+        );
     }
 
     function buy(uint256 groupID) external payable onlyInSalesPeriod {
@@ -75,10 +94,6 @@ contract TicketsStore is Ownable {
             groups[groupID].resellers.getHead() < groups[groupID].sellCurve;
     }
 
-    // Secondary Market
-    /*
-        Todo: Sellcurve drop mechanism
-    */
     function buyOnSecondaryMarket(uint256 groupID) private {
         uint256 price = groups[groupID].resellers.getHead();
 
@@ -103,20 +118,19 @@ contract TicketsStore is Ownable {
         );
 
         groups[groupID].resellers.popHead();
-        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(
-            calculateDrop()
-        );
+
+        // Drop the curve
+        calcDrop(groupID);
     }
 
-    // Primary Market
-    /*
-        Todo: Sellcurve drop mechanism
-    */
     function buyOnPrimaryMarket(uint256 groupID) private {
         TicketGroup storage group = groups[groupID];
 
         require(group.sellCurve <= msg.value, "Not enough money");
-        require(group.available >= 1, "There are not any left tickets");
+        require(
+            group.total.sub(group.bought) >= 1,
+            "There are not any left tickets"
+        );
 
         ticketsOwner[msg.sender][groupID].push(group.sellCurve);
 
@@ -127,8 +141,8 @@ contract TicketsStore is Ownable {
             msg.value.sub(group.sellCurve)
         );
 
-        group.available = group.available.sub(1);
-        group.sellCurve = group.sellCurve.add(calculateUp());
+        group.bought = group.bought.add(1);
+        group.sellCurve = group.sellCurve.add(group.increase);
     }
 
     // Resell
@@ -179,9 +193,8 @@ contract TicketsStore is Ownable {
 
         msg.sender.transfer(refundPrice);
 
-        groups[groupID].sellCurve = groups[groupID].sellCurve.sub(
-            calculateDrop()
-        );
+        // Drop the curve
+        calcDrop(groupID);
     }
 
     // Withdraw
@@ -199,15 +212,12 @@ contract TicketsStore is Ownable {
         receiver.transfer(amount);
     }
 
-    // Formulas
-    // Todo: Implement it
-    function calculateDrop() private view returns (uint256) {
-        return 1000000000000000000; // 1 ether
-    }
+    // Drop ticket price
+    function calcDrop(uint256 groupID) private {
+        TicketGroup storage group = groups[groupID];
 
-    // Todo: Implement it
-    function calculateUp() private view returns (uint256) {
-        return 1000000000000000000; // 1 ether
+        group.ratio = group.increase.mul(group.bought).div(group.total);
+        group.sellCurve = group.sellCurve.sub(group.ratio);
     }
 
     receive() external payable {}
