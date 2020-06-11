@@ -25,7 +25,7 @@
     "type": "git",
     "url": "git+https://github.com/LimeChain/hedera-tickets-contracts.git"
   },
-  "author": "LimeChain",
+  "author": "EventCo",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/LimeChain/hedera-tickets-contracts/issues"

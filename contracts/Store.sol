@@ -211,4 +211,37 @@ contract TicketsStore is Ownable {
     }
 
     receive() external payable {}
+
+    // Getter functions
+    function getOwnedTickets() external view returns (bytes32[] memory) {
+        uint256 allTicketsCount = 0;
+
+        // Calculate how much tickets the owner has
+        for (uint256 i = 0; i < groups.length; i++) {
+            if (ticketsOwner[msg.sender][i].length > 0) {
+                allTicketsCount += 1;
+            }
+        }
+
+        // Load onwed tickets
+        bytes32[] memory ownedTickets = new bytes32[](allTicketsCount);
+        uint256 offset = 32;
+        for (uint256 i = 0; i < groups.length; i++) {
+            if (ticketsOwner[msg.sender][i].length > 0) {
+                uint256 groupTicketsCount = ticketsOwner[msg.sender][i].length;
+                assembly {
+                    mstore(add(ownedTickets, offset), i)
+                    mstore(add(ownedTickets, add(offset, 32)),groupTicketsCount)
+                }
+
+                for (uint256 j = 0; j < ticketsOwner[msg.sender][i].length; j++) {
+                    offset += 32;
+                    uint256 ticketPrice = ticketsOwner[msg.sender][i][j];
+                    assembly { mstore(add(ownedTickets, offset), ticketPrice) }
+                }
+            }
+        }
+
+        return ownedTickets;
+    }
 }
