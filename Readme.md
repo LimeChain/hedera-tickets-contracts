@@ -1,4 +1,4 @@
-# Hedera Tickets offering contract
+# EventCo bonding contract
 
 ### Commands
 * Compile ETH compatible contract - `npm run compile`
