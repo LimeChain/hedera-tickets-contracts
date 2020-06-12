@@ -34,7 +34,8 @@ contract TicketsStore is Ownable {
         uint256 resellPrice;
     }
     // Reseller | desired price | for ticket id
-    mapping(address => mapping(uint256 => TicketForResell)) public ticketsForResell;
+    mapping(address => mapping(uint256 => TicketForResell))
+        public ticketsForResell;
 
     modifier onlyInSalesPeriod() {
         require(now <= offeringExpiration, "Offering has ended");
@@ -73,7 +74,7 @@ contract TicketsStore is Ownable {
 
     function buy(uint256 groupID) external payable onlyInSalesPeriod {
         require(
-            groups.length - 1 <= groupID,
+            groups.length - 1 >= groupID,
             "Such tickets group does not exist"
         );
 
@@ -242,11 +243,18 @@ contract TicketsStore is Ownable {
                 uint256 groupTicketsCount = ticketsOwner[msg.sender][i].length;
                 assembly {
                     mstore(add(ownedTickets, offset), i)
-                    mstore(add(ownedTickets, add(offset, 32)), groupTicketsCount)
+                    mstore(
+                        add(ownedTickets, add(offset, 32)),
+                        groupTicketsCount
+                    )
                 }
-                
+
                 offset += 32;
-                for (uint256 j = 0; j < ticketsOwner[msg.sender][i].length; j++) {
+                for (
+                    uint256 j = 0;
+                    j < ticketsOwner[msg.sender][i].length;
+                    j++
+                ) {
                     offset += 32;
                     uint256 ticketPrice = ticketsOwner[msg.sender][i][j];
                     assembly {
