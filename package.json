@@ -17,7 +17,9 @@
   "scripts": {
     "eth": "etherlime ganache",
     "test": "etherlime test ./tests --skip-compilation",
-    "compile": "etherlime compile",
+    "simulation": "etherlime test ./tests/store-simulation.js --skip-compilation",
+    "compile": "etherlime compile --path=./contracts/eth-compatible --buildDirectory=../../build",
+    "hedera-compile": "etherlime compile --path=./contracts/hedera-compatible --buildDirectory=../../build",
     "hedera-start": "node ./hedera/playground",
     "hedera-deploy": "node ./hedera/deployment"
   },

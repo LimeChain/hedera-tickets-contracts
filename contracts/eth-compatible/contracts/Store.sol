@@ -1,9 +1,8 @@
 pragma solidity 0.6.7;
 
 import "./ResellersList.sol";
-import "./../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
-import "./../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-
+import "./../../../node_modules/@openzeppelin/contracts/math/SafeMath.sol";
+import "./../../../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
 contract TicketsStore is Ownable {
     using SafeMath for uint256;
@@ -229,7 +228,7 @@ contract TicketsStore is Ownable {
         // Calculate how much tickets the owner has
         for (uint256 i = 0; i < groups.length; i++) {
             if (ticketsOwner[msg.sender][i].length > 0) {
-                allTicketsCount += 1;
+                allTicketsCount += ticketsOwner[msg.sender][i].length + 2;
             }
         }
 
@@ -241,13 +240,16 @@ contract TicketsStore is Ownable {
                 uint256 groupTicketsCount = ticketsOwner[msg.sender][i].length;
                 assembly {
                     mstore(add(ownedTickets, offset), i)
-                    mstore(add(ownedTickets, add(offset, 32)),groupTicketsCount)
+                    mstore(add(ownedTickets, add(offset, 32)), groupTicketsCount)
                 }
-
+                
+                offset += 32;
                 for (uint256 j = 0; j < ticketsOwner[msg.sender][i].length; j++) {
                     offset += 32;
                     uint256 ticketPrice = ticketsOwner[msg.sender][i][j];
-                    assembly { mstore(add(ownedTickets, offset), ticketPrice) }
+                    assembly {
+                        mstore(add(ownedTickets, offset), ticketPrice)
+                    }
                 }
             }
         }

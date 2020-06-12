@@ -1,7 +1,6 @@
 pragma solidity 0.6.7;
 
-import "./../node_modules/@openzeppelin/contracts/access/Ownable.sol";
-
+import "./../../../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
 contract ResellersList is Ownable {
     struct Queue {
