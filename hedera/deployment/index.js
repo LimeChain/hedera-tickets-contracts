@@ -16,43 +16,57 @@ async function deploy () {
     client.setOperator(account, privateKey);
 
 
-    // const contractFactory = new ContractFactory(client, privateKey.publicKey);
+    const contractFactory = new ContractFactory(client, privateKey.publicKey);
 
-    // const constructorParams = new hedera.ContractFunctionParams().addUint256(new BigNumber(25)).addUint256(new BigNumber(60 * 60 * 24 * 7));
+    // 25% commission of resell ticket going to organization
+    const constructorParams = new hedera.ContractFunctionParams().addUint256(new BigNumber(25)).addUint256(new BigNumber(60 * 60 * 24 * 7));
 
-    // const contractId = await contractFactory.deploy(TicketsStoreByteCode, constructorParams);
-    // console.log("contract id", contractId);
+    const contractId = await contractFactory.deploy(TicketsStoreByteCode, constructorParams);
+    console.log("contract id", contractId);
 
-    const contractId = '0.0.62290';
-
-    // const callResult = await new hedera.ContractCallQuery()
-    //     .setContractId(contractId)
-    //     .setGas(1000)
-    //     .setFunction("eventCommission", null)
-    //     .execute(client);
-
-    // const callResult1 = await (await new hedera.ContractExecuteTransaction()
-    //     .setContractId(contractId)
-    //     .setGas(200000)
-    //     .setFunction("defineGroup", new hedera.ContractFunctionParams().addUint256(new BigNumber(10)).addUint256(new BigNumber(20)))
-    //     .execute(client)).getReceipt(client);
-
-    // console.log('here')
-    const callResult2 = await new hedera.ContractCallQuery()
+    const callResult = await new hedera.ContractCallQuery()
         .setContractId(contractId)
-        .setGas(10000)
-        .setFunction("groups", new hedera.ContractFunctionParams().addUint256(0))
+        .setGas(1000)
+        .setFunction("eventCommission", null)
         .execute(client);
 
+    console.log(callResult.getUint256(0).toString());
 
-    // assert(definedTickets.price.eq(ALL_TICKETS.price));
-    // assert(definedTickets.sellCurve.eq(ALL_TICKETS.price));
-    // assert(definedTickets.total.eq(ALL_TICKETS.available));
-    // assert(definedTickets.available.eq(ALL_TICKETS.available));
-    // assert(definedTickets.resellers != 0x0);
+    // // Tickets for 5 hbars price 
+    await (await new hedera.ContractExecuteTransaction()
+        .setContractId(contractId)
+        .setGas(200000)
+        .setFunction("defineGroup", new hedera.ContractFunctionParams()
+            .addUint256(new BigNumber(100)) // total tickets
+            .addUint256(new BigNumber('500000000')) // primary price = 5 hbars
+            .addUint256(new BigNumber('25000000')) // increase of 0.25 hbars
+        )
+        .execute(client)).getReceipt(client);
 
-    console.log("call gas used:", callResult2);
-    console.log("message:", callResult2.getAddress(4).toString());
+    // Tickets for 10 hbars price 
+    await (await new hedera.ContractExecuteTransaction()
+        .setContractId(contractId)
+        .setGas(200000)
+        .setFunction("defineGroup", new hedera.ContractFunctionParams()
+            .addUint256(new BigNumber(20)) // total tickets
+            .addUint256(new BigNumber('1000000000')) // primary price = 10 hbars
+            .addUint256(new BigNumber('25000000')) // increase of 0.25 hbars
+        )
+        .execute(client)).getReceipt(client);
+
+
+    // Tickets for 15 hbars price 
+    await (await new hedera.ContractExecuteTransaction()
+        .setContractId(contractId)
+        .setGas(200000)
+        .setFunction("defineGroup", new hedera.ContractFunctionParams()
+            .addUint256(new BigNumber(10)) // total tickets
+            .addUint256(new BigNumber('1500000000')) // primary price = 15 hbars
+            .addUint256(new BigNumber('25000000')) // increase of 0.25 hbars
+        )
+        .execute(client)).getReceipt(client);
+
+    console.log('Deployed and configured');
 
     await client.close();
 }
